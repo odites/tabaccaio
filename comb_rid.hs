@@ -43,11 +43,11 @@ filtraggio n (x:xs) = filter (filtro n x) xs
 
 -- Funzione che dato una lista di combinazioni, produce il numero ridotto di combinazioni necessarie a ridurre a "n" il numero elementi voluti tali che vi sia almeno una "n" dentro una combinazione indovinata.
 -- Nel caso di una lista di terni, e n = 2, trova tutti i necessari terni in modo tale che per ogni terno indovinato da principio, avendo selezionato quei dati numeri, ci sia un ambo sicuro giocando un numero ridotto di terni
-gigi :: (Ord a, Num a, Eq t) => a -> [[t]] -> [[t]]
-gigi _ [] = []
-gigi _ (x:[]) = [x]
-gigi _ (x:y:[]) = [x]
-gigi n (x:xs)  = [x] ++ (gigi n $ filtraggio n (x:xs))
+riduzionefederico :: (Ord a, Num a, Eq t) => a -> [[t]] -> [[t]]
+riduzionefederico _ [] = []
+riduzionefederico _ (x:[]) = [x]
+riduzionefederico _ (x:y:[]) = [x]
+riduzionefederico n (x:xs)  = [x] ++ (riduzionefederico n $ filtraggio n (x:xs))
 
 -- Funzione che uso per fare le prove di quello che faccio
 prova :: (Foldable t, Ord a) => t [a] -> [a]
@@ -66,42 +66,71 @@ scomposizioni = [x*16 | x <- [0..13]]
 riduzionestandard n r lista = map ((combinations n lista) !!) scomposizioni
 sottoriduzionestandard n r lista = prova $ combinations (n - r) $ riduzionestandard n r lista
 mappastandard z n r lista = map (filtro z (sottoriduzionestandard n r lista)) (map (combinations (n- r)) (combinations n lista))
+--- FINE SCAZZO
+
+
+
+--- SEZIONE DETENZIONE CORRETTEZZA ALGORITMICA
+-- Le funzioni seguenti servono ad accertare che la riduzione che andiamo ad usare realmente funzioni. 
+-- Ovvero per ogni combinazione giocata essa ha almeno una sottocombinazione valida di ogni possibile combinazione giocabile per quel dato insieme di numeri di partenza
+
 
 noverita [] = True
 noverita (x:[]) = x
 noverita (x:xs)= x && noverita xs
 
+-- Restituisce False solo se ogni sottocombinazione listacomb, ha un elemento generabile da comb
 scopritore n r comb listacomb = noverita $ map (filtro (n - r) comb) listacomb
 
--- Se una combinazione ridotta con "sottoriduzionestandard" xs è contenuta nelle possibili combinazioni integrali ys, allora da False perché non trova un errore! (in effetti è al contrario del senso logico)
+-- Restituisce False solo se ogni sottocombinazione ys, ha un elemento generabile da tutti i vari xs
 yazini n r (x:[]) ys = scopritore n r x ys
 yazini n r (x:xs) ys = (scopritore n r x ys) && (yazini n r xs ys)
 
--- Da modificare perché se si fa l'and logico basta solo una combinazione che va bene, ovvero che dia False, per essere tutto False
+-- Restituisce False se la riduzione funziona
 yuzini n r xs (y:[]) = yazini n r xs y
-yuzini n r xs (y:ys) = (yazini n r xs y) && (yuzini n r xs ys)
+yuzini n r xs (y:ys) = (yazini n r xs y) || (yuzini n r xs ys)
+
+-- Restituisce True se la riduzione funziona, in modo che con la verita sia più user friendly!
+yizini n r xs ys = not $ yuzini n r xs ys
 
 
-yeezini n r (x:[]) ys = [scopritore n r x ys]
-yeezini n r (x:xs) ys = (scopritore n r x ys) : (yeezini n r xs ys)
+-- Funzionalmente simile a yazini, crea la lista dei booleani per ogni lista di sottocombinazioni generata da una combinazione ipotetica
+yaaazini n r (x:[]) ys = [scopritore n r x ys]
+yaaazini n r (x:xs) ys = (scopritore n r x ys) : (yaaazini n r xs ys)
+-- Funzionalmente simile a yuzini, crea una lista di liste di booleani, in cui i False rappresentano che un elemento è generato e quindi una lista con almeno un False è buona! 
+yuuuzini n r xs (y:[]) = [yaaazini n r xs y]
+yuuuzini n r xs (y:ys) = (yaaazini n r xs y) : (yuuuzini n r xs ys)
 
-yoozini n r xs (y:[]) = [yeezini n r xs y]
-yoozini n r xs (y:ys) = (yeezini n r xs y) : (yoozini n r xs ys)
+-- Funzionalmente identico a yizini, restituisce True se la riduzione funziona, in modo che con la verita sia più user friendly!
+yiiizini n r xs ys = discriminante $ yuuuzini n r xs ys
 
 
+nand = not . and
 
-pippo = sottoriduzionestandard 6 1 [1..10]
-pippe = map (combinations (6- 1)) (combinations 6 [1..10])
---- SEZIONE SCAZZO FINE
+-- Opera in modo tale: restituisce True, solo se ogni lista debba contentere almeno un elemento False
+discriminante :: [[Bool]] -> Bool
+discriminante [] = False
+discriminante (x:[]) = nand x
+discriminante (x:xs) = nand x && discriminante xs
+
+--- FINE SEZIONE DETENZIONE
+
 
 nes :: Int
 nes = 6
 les :: [Word8]
-les = [1..10]
-
+les = [1..15]
 
 combinazioni = combinations nes les
 
+combridotti = riduzionefederico nes $ combinazioni
+
+combcombinazioni = map (combinations (nes - 1)) combinazioni
+
+--prova1 = yizini nes 1 combridotti combcombinazioni
+--prova2 = yiiizini nes 1 combridotti combcombinazioni
+
 main = do
     print $ binomial (length les) nes
---    print $ combinazioni
+    --print $ yizini nes 1 combridotti combcombinazioni
+    print $ yiiizini nes 1 combridotti combcombinazioni
