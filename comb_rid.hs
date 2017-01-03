@@ -119,18 +119,61 @@ discriminante (x:xs) = nand x && discriminante xs
 nes :: Int
 nes = 6
 les :: [Word8]
-les = [1..15]
+les = [1..10]
 
 combinazioni = combinations nes les
 
-combridotti = riduzionefederico nes $ combinazioni
+combridotti = riduzionefederico (nes - 1) $ combinazioni
 
 combcombinazioni = map (combinations (nes - 1)) combinazioni
 
 --prova1 = yizini nes 1 combridotti combcombinazioni
 --prova2 = yiiizini nes 1 combridotti combcombinazioni
 
+
+-- SEZIONE PROVA RIDUZIONI CON ELENCO
+-- Vado a vedere le possibili coincidenze tra le riduzioni alla federico e quelle con i pivot
+
+contatore :: (Eq a) => Int -> [[a]] -> [[a]] -> [Int]
+contatore n [] _    = []
+contatore n _ []    = []
+contatore n (i:is) (r:rs)
+    | i == r        = n : contatore (n + 1) is rs
+    | otherwise     = contatore (n + 1) (i:is) rs
+    
+-- Per usarlo va messo n ad 1
+alister x y = contatore 1 x y
+
+--Elenco equidistante di indici da usare per il mapping
+-- 210 è il binomiale con 10 selezioni e 6 numeri, 14 è la riduzione teorica e quindi si mette 13
+fardello :: [Int]
+fardello = [round (x * (209 / 13)) | x <- [0..13]]
+fardella :: [Int]
+fardella = [floor (x * (209 / 13)) | x <- [0..13]]
+nedo = map (combinazioni !!) fardello
+neda = map (combinazioni !!) fardella
+combnedo = yizini nes 1 nedo combcombinazioni
+combneda = yizini nes 1 neda combcombinazioni
+-- Fine ho visto che con i pivot non riesco a soddisfare l'ipotesi di garanzia
+
+
+
 main = do
     print $ binomial (length les) nes
     --print $ yizini nes 1 combridotti combcombinazioni
-    print $ yiiizini nes 1 combridotti combcombinazioni
+    --print $ yiiizini nes 1 combridotti combcombinazioni
+    print $ riduzionefederico (nes - 3) $ combinazioni
+    
+    
+-- IDEA Riduzione
+-- Prendo gli elementi più diversi ricorsivamente fino ad arrivare all'ottimo
+filtro2 n x y 
+    | contauguali x y == n  = True 
+    | otherwise             = False
+
+filtraggio2 _ (x:[]) = [x]
+filtraggio2 n (x:xs) = x : filter (filtro2 n x) xs
+
+creapul n = sort . nub . filtraggio2 n
+
+
